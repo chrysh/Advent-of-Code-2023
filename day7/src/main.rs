@@ -3,6 +3,15 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
+macro_rules! dbg {
+    ($($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        {
+            println!($($arg)*);
+        }
+    };
+}
+
 #[derive(Debug, PartialEq)]
 enum Rank {
     HighCard,
@@ -13,6 +22,7 @@ enum Rank {
     Four,
     Five,
 }
+const RANKS_IN_DECK: usize = 7;
 
 #[derive(Debug, PartialEq)]
 enum State {
@@ -20,8 +30,8 @@ enum State {
     CouldBeTwoPair,
     Uninitialized,
 }
-
-static ORDER: &'static [char; 13] = &[
+const CARDS_IN_SUIT: usize = 13;
+static ORDER: &'static [char; CARDS_IN_SUIT] = &[
     '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A',
 ];
 
@@ -37,11 +47,68 @@ fn rank_to_usize(rank: Rank) -> usize {
     }
 }
 
-fn find_rank(cards: &str) -> Rank {
-    let mut card_count = [0; 13];
-    let mut ids = Vec::new();
+fn get_rank(ids: Vec<usize>, card_count: [u32; CARDS_IN_SUIT]) -> Rank {
+    let mut state = State::Uninitialized;
+    for id in ids {
+        dbg!("{} {} {:?}", id, card_count[id], state);
 
-    println!("{}", cards);
+        match card_count[id] {
+            5 => return Rank::Five,
+            4 => return Rank::Four,
+            3 => {
+                if state == State::CouldBeTwoPair {
+                    return Rank::FullHouse;
+                } else {
+                    state = State::CouldBeFullhouse;
+                    continue;
+                }
+            }
+            2 => {
+                if state == State::CouldBeFullhouse {
+                    return Rank::FullHouse;
+                } else if state == State::CouldBeTwoPair {
+                    return Rank::TwoPair;
+                } else {
+                    state = State::CouldBeTwoPair;
+                    continue;
+                }
+            }
+            _ => continue,
+        }
+
+        // if state == State::CouldBeFullhouse {
+        //     if card_count[id] == 2 {
+        //         return Rank::FullHouse;
+        //     }
+        // } else if state == State::CouldBeTwoPair {
+        //     if card_count[id] == 3 {
+        //         return Rank::FullHouse;
+        //     } else if card_count[id] == 2 {
+        //         return Rank::TwoPair;
+        //     }
+        // } else if card_count[id] == 5 {
+        //     return Rank::Five;
+        // } else if card_count[id] == 4 {
+        //     return Rank::Four;
+        // } else if card_count[id] == 3 {
+        //     state = State::CouldBeFullhouse;
+        //     continue;
+        // } else if card_count[id] == 2 {
+        //     state = State::CouldBeTwoPair;
+        //     continue;
+        // }
+    }
+    match state {
+        State::Uninitialized => Rank::HighCard,
+        State::CouldBeFullhouse => Rank::Three,
+        State::CouldBeTwoPair => Rank::OnePair,
+        _ => Rank::HighCard,
+    }
+}
+
+fn get_card_count(cards: &str) -> (Vec<usize>, [u32; CARDS_IN_SUIT]) {
+    let mut card_count = [0; CARDS_IN_SUIT];
+    let mut ids = Vec::new();
 
     for card in cards.chars() {
         let card_value = ORDER.iter().position(|&c| c == card).unwrap();
@@ -50,67 +117,34 @@ fn find_rank(cards: &str) -> Rank {
             ids.push(card_value);
         }
     }
+    (ids, card_count)
+}
 
-    println!("{:?}", ids);
-    println!("{:?}", card_count);
+fn find_rank(cards: &str) -> Rank {
+    let card_count;
+    let ids;
 
-    let mut state = State::Uninitialized;
-    for id in ids {
-        println!("{} {} {:?}", id, card_count[id], state);
-        if state == State::CouldBeFullhouse {
-            if card_count[id] == 2 {
-                return Rank::FullHouse;
-            }
-        } else if state == State::CouldBeTwoPair {
-            if card_count[id] == 3 {
-                return Rank::FullHouse;
-            } else if card_count[id] == 2 {
-                return Rank::TwoPair;
-            }
-        } else if card_count[id] == 5 {
-            return Rank::Five;
-        } else if card_count[id] == 4 {
-            return Rank::Four;
-        } else if card_count[id] == 3 {
-            state = State::CouldBeFullhouse;
-            continue;
-        } else if card_count[id] == 2 {
-            state = State::CouldBeTwoPair;
-            continue;
-        }
-    }
+    dbg!("{}", cards);
 
-    if state == State::Uninitialized {
-        return Rank::HighCard;
-    }
+    (ids, card_count) = get_card_count(cards);
 
-    if state == State::CouldBeFullhouse {
-        return Rank::Three;
-    }
+    dbg!("{:?}", ids);
+    dbg!("{:?}", card_count);
 
-    if state == State::CouldBeTwoPair {
-        return Rank::OnePair;
-    }
-    Rank::HighCard
+    get_rank(ids, card_count)
 }
 
 fn sort_rank_piles(cards: Vec<&str>) -> Vec<Vec<&str>> {
-    let mut piles: Vec<Vec<&str>> = vec![Vec::new(); 7];
+    let mut piles: Vec<Vec<&str>> = vec![Vec::new(); RANKS_IN_DECK];
     for card in cards {
-        println!("card: {} rank: {}", card, rank_to_usize(find_rank(card)));
+        dbg!("card: {} rank: {}", card, rank_to_usize(find_rank(card)));
         let rank = find_rank(card);
         let rn = rank_to_usize(rank);
         piles[rn].push(card);
     }
-    for pile in &piles {
-        println!("{:?}", pile);
-    }
     piles
 }
 
-fn sum_tuples(tuples: Vec<u32>) -> u32 {
-    tuples.iter().sum()
-}
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
     P: AsRef<Path>,
@@ -119,20 +153,28 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-fn main() -> io::Result<()> {
+fn read_file_into_lines(filename: &str) -> Result<(Vec<String>, HashMap<String, u32>), Box<dyn std::error::Error>> {
     let mut lines_vec: Vec<String> = Vec::new();
     let mut map: HashMap<String, u32> = HashMap::new();
 
-    if let Ok(lines) = read_lines("input") {
-        for line in lines {
-            if let Ok(ip) = line {
-                let parts: Vec<&str> = ip.split(' ').collect();
-                println!("{:?}", parts[0]);
-                lines_vec.push(parts[0].to_string());
-                map.insert(parts[0].to_string(), parts[1].parse::<u32>().unwrap());
-            }
-        }
+    let lines = read_lines(filename)?;
+
+    for line in lines {
+        let ip = line?;
+        let parts: Vec<&str> = ip.split(' ').collect();
+        lines_vec.push(parts[0].to_string());
+        let num = parts[1].parse::<u32>().map_err(|e| format!("Failed to parse number: {}", e))?;
+        map.insert(parts[0].to_string(), num);
     }
+
+    Ok((lines_vec, map))
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let lines_vec: Vec<String>;
+    let map: HashMap<String, u32>;
+
+    (lines_vec, map) = read_file_into_lines("input")?;
 
     println!("{}", sum_all(lines_vec, map));
     Ok(())
@@ -146,14 +188,14 @@ fn sum_all(lines_vec: Vec<String>, map: HashMap<String, u32>) -> u32 {
         p.sort_by(cmp_cards);
     }
 
-    println!("{:?}", piles);
+    dbg!("{:?}", piles);
 
     let mut sum = 0;
     let mut i: u32 = 1;
     for p in piles {
         for card in p {
-            let x = (*map.get(card).unwrap() * i);
-            println!("{} = {} * {}", x, x / i, i);
+            let x = *map.get(card).unwrap() * i;
+            dbg!("{} = {} * {}", x, x / i, i);
             sum += x;
             i += 1;
         }
@@ -218,14 +260,13 @@ mod tests {
 
     #[test]
     fn test_check_piles() {
-        let mut piles: Vec<Vec<&str>> = vec![Vec::new(); 7];
+        let mut piles: Vec<Vec<&str>> = vec![Vec::new(); RANKS_IN_DECK];
         let cards: [&str; 16] = [
             "AAAAA", "AA8AA", "TTT98", "23332", "23432", "A23A4", "23456", "33332", "2AAAA",
             "77888", "77788", "32T3K", "KTJJT", "KK677", "T55J5", "T55J5",
         ];
 
         for card in cards {
-            println!("card: {} rank: {}", card, rank_to_usize(find_rank(card)));
             let rank = find_rank(card);
             let rn = rank_to_usize(rank);
             piles[rn].push(card);
@@ -242,14 +283,13 @@ mod tests {
 
     #[test]
     fn test_check_sort_ranked_piles() {
-        let mut piles: Vec<Vec<&str>> = vec![Vec::new(); 7];
+        let mut piles: Vec<Vec<&str>> = vec![Vec::new(); RANKS_IN_DECK];
         let cards: [&str; 15] = [
             "AA8AA", "2AAAA", "TTT98", "23332", "23432", "A23A4", "23456", "33332", "77888",
             "77788", "32T3K", "KTJJT", "KK677", "T55J5", "AQ68J",
         ];
 
         for card in cards {
-            println!("card: {} rank: {}", card, rank_to_usize(find_rank(card)));
             let rank = find_rank(card);
             let rn = rank_to_usize(rank);
             piles[rn].push(card);
@@ -287,7 +327,7 @@ QQQJA 483"#;
 
         for line in input.lines() {
             let parts: Vec<&str> = line.split(' ').collect();
-            println!("{:?}", parts[0]);
+            dbg!("{:?}", parts[0]);
             lines_vec.push(parts[0].to_string());
             map.insert(parts[0].to_string(), parts[1].parse::<u32>().unwrap());
         }
