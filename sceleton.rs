@@ -38,7 +38,7 @@ fn read_file_into_lines(filename: &str) -> Result<(Vec<String>, HashMap<String, 
 }
 
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let lines_vec: Vec<String>;
 
     (lines_vec, _) = read_file_into_lines("input")?;
