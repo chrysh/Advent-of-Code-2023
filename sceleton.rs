@@ -53,7 +53,8 @@ mod tests {
 
     #[test]
     fn test_find_number() {
-        assert_eq!(12, 12);
+        let input = 12;
+        assert_eq!(input, 12);
     }
 
 }
