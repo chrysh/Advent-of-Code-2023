@@ -57,15 +57,11 @@ fn calc_possiblities_efficient(time: u32, dist: u32) -> u32 {
 }
 
 fn calc_possiblities(time: u32, dist: u32) -> u32 {
-    let mut pos = 0;
-
-    for i in 0..time {
-        if i * (time - i) > dist {
-            pos += 1;
-        }
-    }
-
-    pos
+    (0..time)
+        .filter(|i|  i * (time - i) > dist)
+        .count()
+        .try_into()
+        .unwrap()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -74,8 +70,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let times: [u32; 4] = [54, 94, 65, 92];
     let dist: [u32; 4] = [302, 1476, 1029, 1404];
-    let mut i = 0;
-    let mut pos = 1;
 
     // for t in times {
     //     pos *= calc_possiblities(t, dist[i]);
@@ -85,10 +79,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // pos = 1;
 
-    for t in times {
-        pos *= calc_possiblities(t, dist[i]);
-        i += 1;
-    }
+    let pos = times
+        .iter()
+        .zip(dist)
+        .map(|(t, d)| calc_possiblities(*t, d))
+        .product::<u32>();
 
     println!("{}", pos);
 
