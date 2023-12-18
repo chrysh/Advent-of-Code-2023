@@ -23,13 +23,14 @@ fn find_number(s: &str) -> Option<u32> {
     parse_number(left, right)
 }
 
-fn extract_numbers(list: Vec<String>) -> Vec<u32> {
-    list.into_iter().filter_map(|s| find_number(&s)).collect()
+fn extract_numbers(list: Vec<String>) -> impl Iterator<Item = u32> {
+    list.into_iter().filter_map(|s| find_number(&s))
 }
 
-fn sum_tuples(tuples: Vec<u32>) -> u32 {
-    tuples.iter().sum()
+fn sum_tuples<I>(tuples: I) -> u32 where I: Iterator<Item = u32> {
+    tuples.sum()
 }
+
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
     P: AsRef<Path>,
@@ -40,16 +41,12 @@ where
 
 
 fn main() -> io::Result<()> {
-    let mut lines_vec = Vec::new();
+    let lines_vec: Vec<_> = read_lines("input")
+        .unwrap()
+        .filter_map(|line| line.ok())
+        .inspect(|ip| { println!("{ip:?}"); })
+        .collect();
 
-    if let Ok(lines) = read_lines("input") {
-        for line in lines {
-            if let Ok(ip) = line {
-                println!("{}", ip);             
-                lines_vec.push(ip);
-            }
-        }
-    }
     println!("{}", sum_tuples(extract_numbers(lines_vec)));
     Ok(())
 }
@@ -64,12 +61,12 @@ mod tests {
 
     #[test]
     fn test_extract_numbers() {
-        assert_eq!(extract_numbers(vec![find_number("1abc2").unwrap().to_string()]), vec![12]);
+        assert_eq!(extract_numbers(vec![find_number("1abc2").unwrap().to_string()]).collect::<Vec<_>>(), vec![12]);
     }
 
     #[test]
     fn test_create_and_sum_tuples() {
-        let input = vec!["1abc2", "pqr3stu8vwx", "a1b2c3d4e5f", "treb7uchet"]
+        let input = ["1abc2", "pqr3stu8vwx", "a1b2c3d4e5f", "treb7uchet"]
             .into_iter()
             .map(|s| s.to_string())
             .collect();
