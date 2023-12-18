@@ -35,6 +35,21 @@ static ORDER: &'static [char; CARDS_IN_SUIT] = &[
     '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A',
 ];
 
+impl From<Rank> for usize {
+    fn from(rank: Rank) -> usize {
+        match rank {
+            Rank::HighCard => 0,
+            Rank::OnePair => 1,
+            Rank::TwoPair => 2,
+            Rank::Three => 3,
+            Rank::FullHouse => 4,
+            Rank::Four => 5,
+            Rank::Five => 6,
+        }
+
+    }
+}
+
 fn rank_to_usize(rank: Rank) -> usize {
     match rank {
         Rank::HighCard => 0,
@@ -213,18 +228,13 @@ fn cmp_cards(a: &&str, b: &&str) -> std::cmp::Ordering {
     let mut a_chars = (*a).chars();
     let mut b_chars = (*b).chars();
 
-    loop {
-        match (a_chars.next(), b_chars.next()) {
-            (Some(a), Some(b)) => match compare_card(a, b) {
-                std::cmp::Ordering::Equal => continue,
-                std::cmp::Ordering::Greater => return std::cmp::Ordering::Greater,
-                std::cmp::Ordering::Less => return std::cmp::Ordering::Less,
-            },
-            (None, None) => return std::cmp::Ordering::Equal,
-            (None, Some(_)) => return std::cmp::Ordering::Less,
-            (Some(_), None) => return std::cmp::Ordering::Greater,
-        }
-    }
+    a_chars
+        .zip(b_chars)
+        .find_map(|(a,b)| match compare_card(a,b) {
+                std::cmp::Ordering::Equal => None,
+                other => Some(other),
+        })
+        .unwrap_or_else(|| std::cmp::Ordering::Equal)
 }
 
 #[cfg(test)]
