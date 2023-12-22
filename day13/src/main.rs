@@ -3,6 +3,7 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::thread;
 use std::collections::HashSet;
+use rayon::prelude::*;
 
 macro_rules! dbg {
     ($($arg:tt)*) => {
@@ -175,6 +176,11 @@ fn sum_smudges(reflections: (Vec<usize>, Vec<usize>)) -> usize {
     sum
 }
 
+fn run_part2_rayon_threads() -> usize {
+    let patterns = read_file_into_lines("input").expect("Failed to read file");
+
+    patterns.par_iter().map(|pat| sum_smudges(search_smudges(pat))).sum()
+}
 
 fn run_part2_threads() -> usize {
     let patterns = read_file_into_lines("input").expect("Failed to read file");
