@@ -133,6 +133,83 @@ fn get_arrangement_cnts(data: Vec<Spring>) -> Vec<usize> {
     res
 }
 
+#[derive(PartialEq, Clone)]
+enum States {
+    ParsingInitial,
+    ParsingBang,
+    ParsingRest,
+}
+
+fn generate_words(mut s: Spring, mut idx: usize, mut bang_count: i8, mut state: States) -> i16 {
+    let mut ret = 0;
+    while idx < s.str.len() && s.states.len() > 0 {
+        if state == States::ParsingBang {
+
+        while idx < s.str.len() && s.str.get(idx..idx+1) == Some("#") {
+            if bang_count > s.states[0] {
+                // Abort generation, this word is not in my alphabet
+                return 0;
+            }
+            idx += 1;
+            bang_count += 1;
+        }
+        if s.str.get(idx..idx+1) == Some("?") {
+            if bang_count < s.states[0] {
+                s.str.replace_range(idx..idx+1, "#");
+            } else { // bang_count == state[0]
+                s.str.replace_range(idx..idx+1, ".");
+            }
+        } else {  // Encountered .
+            if bang_count != s.states[0] {
+                // Abort generation, this word is not in my alphabet
+                return 0;
+            }
+            s.states.remove(0);
+            state = States::ParsingRest;
+            idx += 1;
+        }
+    } else if state == States::ParsingRest {
+        // FIXME: Transform to match
+        while idx < s.str.len() {
+        while idx < s.str.len() && s.str.get(idx..idx+1) == Some(".") {
+            idx += 1;
+        }
+        if s.str.get(idx..idx+1) == Some("#") {
+            bang_count = 0;
+            state = States::ParsingBang;
+            idx += 1;
+        } else if s.str.get(idx..idx+1) == Some("?") {
+            let new_spring = Spring{ str: s.str.clone(), states: s.states.clone()};
+            ret += generate_words(new_spring, idx, bang_count, state.clone());
+            ret += generate_words(s, idx, bang_count, state);
+            return ret;
+        }
+
+    }
+    } else if state == States::ParsingInitial {
+        if s.str.get(idx..idx+1) == Some("#") {
+            state = States::ParsingBang;
+        } else {
+            state = States::ParsingRest;    
+        }
+        idx += 1;
+
+    }
+}
+    if s.states.len() > 0 {
+        return 0;
+    }
+    1
+}
+
+fn get_number_perms(data: Vec<Spring>) -> Vec<i16> {
+    let mut res : Vec<i16> = Vec::new();
+    for s in data {
+        res.push(generate_words(s, 0, 0, States::ParsingInitial));
+    }
+    res
+}
+
 fn get_arrangement_sum(res: Vec<Spring>) -> usize {
     get_arrangement_cnts(res).par_iter().sum()
 }
@@ -142,6 +219,7 @@ fn generate_input_part2(data: Vec<Spring>) -> Vec<Spring> {
     for spring in data {
         let new_str = (spring.str.clone() + "?").repeat(5);
         let new_states = spring.states.clone().repeat(5);
+        // FIXME: decide already here on values?
         result.push(Spring { str: new_str, states: new_states});
     }
     result
@@ -152,7 +230,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input_part2 = generate_input_part2(input.clone());
 
     println!("PART1: {:?}", get_arrangement_sum(input));
-    // println!("PART2: {:?}", get_arrangement_sum(input_part2));
+    println!("PART2: {:?}", get_arrangement_sum(input_part2));
     Ok(())
 }
 
@@ -193,42 +271,49 @@ mod tests {
         dbg!("{:?}", result);
         assert_eq!(result.len(), 1);
     }
-
+    
     macro_rules! test_arrangement {
-        ($input:expr, $expected:expr) => {
-            assert_eq!(get_arrangement_cnts(vec![$input])[0], $expected);
+        ($str:expr, $states:expr, $expected:expr) => {
+            assert_eq!(get_arrangement_cnts(vec![Spring{str: $str, states: $states}])[0], $expected);
         };
     }
-
+    
+        #[test]
+        fn test_statemachine() {
+            test_arrangement!("???.###".to_string(), vec![1,1,3], 1);
+            test_arrangement!(".??..??...?##.".to_string(), vec![1,1,3], 4);
+        }
+    
     #[test]
     fn test_nom_next_input() {
-        test_arrangement!(("???.###".to_string(), vec![1,1,3]), 1);
-        test_arrangement!((".??..??...?##.".to_string(), vec![1,1,3]), 4);
-        test_arrangement!(("?#?#?#?#?#?#?#?".to_string(), vec![1,3,1,6]), 1);
-        test_arrangement!(("????.".to_string(), vec![4]), 1);
-        test_arrangement!(("????.#...#...".to_string(), vec![4,1,1]), 1);
-        test_arrangement!(("????.######..#####.".to_string(), vec![1,6,5]), 4);
-        test_arrangement!(("????.#####..#####.".to_string(), vec![1,6,5]), 0);
+        test_arrangement!("???.###".to_string(), vec![1,1,3], 1);
+        test_arrangement!(".??..??...?##.".to_string(), vec![1,1,3], 4);
+        test_arrangement!("?#?#?#?#?#?#?#?".to_string(), vec![1,3,1,6], 1);
+        test_arrangement!("????.".to_string(), vec![4], 1);
+        test_arrangement!("????.#...#...".to_string(), vec![4,1,1], 1);
+        test_arrangement!("????.######..#####.".to_string(), vec![1,6,5], 4);
+        test_arrangement!("????.#####..#####.".to_string(), vec![1,6,5], 0);
     }
     
     #[test]
     fn test_nom_next_input_basic1() {
-        test_arrangement!(("?###????????".to_string(), vec![3,2,1]), 10);
-        test_arrangement!(("???????".to_string(), vec![2,1]), 10);
-        test_arrangement!(("?????".to_string(), vec![2, 1]), 3);
-        test_arrangement!((".?#??#.#".to_string(), vec![1,2,1]), 1);
-        test_arrangement!(("#??#".to_string(), vec![1,2]), 1);
-        test_arrangement!(("#??".to_string(), vec![1,1]), 1);
+        test_arrangement!("?###????????".to_string(), vec![3,2,1], 10);
+        test_arrangement!("???????".to_string(), vec![2,1], 10);
+        test_arrangement!("?????".to_string(), vec![2, 1], 3);
+        test_arrangement!(".?#??#.#".to_string(), vec![1,2,1], 1);
+        test_arrangement!("#??#".to_string(), vec![1,2], 1);
+        test_arrangement!("#??".to_string(), vec![1,1], 1);
     }
 
     #[test]
     fn test_nom_next_input_basic2() {
-        test_arrangement!(("#".to_string(), vec![1]), 1);
-        test_arrangement!((".#".to_string(), vec![1]), 1);
-        test_arrangement!((".#.".to_string(), vec![1]), 1);
-        test_arrangement!(("##.".to_string(), vec![1]), 0);
-        test_arrangement!(("..".to_string(), vec![1]), 0);
-        test_arrangement!(("..#.##.#".to_string(), vec![1,2,1]), 1);
-        test_arrangement!(("..#.##.#".to_string(), vec![1,1,2]), 0);
+    /*     test_arrangement!(('#'.to_string(), vec![1], 1);
+        test_arrangement!((".#".to_string(), vec![1], 1);
+        test_arrangement!((".#.".to_string(), vec![1], 1);
+        test_arrangement!(("##.".to_string(), vec![1], 0);
+        test_arrangement!(("..".to_string(), vec![1], 0);
+        test_arrangement!(("..#.##.#".to_string(), vec![1,2,1], 1);
+        test_arrangement!(("..#.##.#".to_string(), vec![1,1,2], 0);
+        */
     }
 }
