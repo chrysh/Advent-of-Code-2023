@@ -117,7 +117,6 @@ fn get_rank(ids: Vec<usize>, card_count: [u32; CARDS_IN_SUIT]) -> Rank {
         State::Uninitialized => Rank::HighCard,
         State::CouldBeFullhouse => Rank::Three,
         State::CouldBeTwoPair => Rank::OnePair,
-        _ => Rank::HighCard,
     }
 }
 
@@ -191,11 +190,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     (lines_vec, map) = read_file_into_lines("input")?;
 
-    println!("{}", sum_all(lines_vec, map));
+    println!("PART1: {}", sum_all(rank_cards_part1(&lines_vec), &map));
+    //println!("PART2: {}", sum_all(lines_vec, map));
     Ok(())
 }
 
-fn sum_all(lines_vec: Vec<String>, map: HashMap<String, u32>) -> u32 {
+fn rank_cards_part1<'a>(lines_vec: &'a Vec<String>) -> Vec<Vec<&'a str>> {
     let vec_of_str: Vec<&str> = lines_vec.iter().map(|s| s.as_str()).collect();
     let mut piles = sort_rank_piles(vec_of_str);
 
@@ -204,6 +204,10 @@ fn sum_all(lines_vec: Vec<String>, map: HashMap<String, u32>) -> u32 {
     }
 
     dbg!("{:?}", piles);
+    piles
+}
+
+fn sum_all(piles: Vec<Vec<&str>>, map: &HashMap<String, u32>) -> u32 {
 
     let mut sum = 0;
     let mut i: u32 = 1;
@@ -225,8 +229,8 @@ fn compare_card(a: char, b: char) -> std::cmp::Ordering {
 }
 
 fn cmp_cards(a: &&str, b: &&str) -> std::cmp::Ordering {
-    let mut a_chars = (*a).chars();
-    let mut b_chars = (*b).chars();
+    let a_chars = (*a).chars();
+    let b_chars = (*b).chars();
 
     a_chars
         .zip(b_chars)
@@ -240,6 +244,15 @@ fn cmp_cards(a: &&str, b: &&str) -> std::cmp::Ordering {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_example_part1 () {
+        let lines_vec: Vec<String>;
+        let map: HashMap<String, u32>;
+
+        (lines_vec, map) = read_file_into_lines("example.input").unwrap();
+        assert_eq!(sum_all(rank_cards_part1(&lines_vec), &map), 6440);
+    }
 
     #[test]
     fn test_compare_basic() {
@@ -341,6 +354,6 @@ QQQJA 483"#;
             lines_vec.push(parts[0].to_string());
             map.insert(parts[0].to_string(), parts[1].parse::<u32>().unwrap());
         }
-        assert_eq!(sum_all(lines_vec, map), 6440);
+        assert_eq!(sum_all(rank_cards_part1(&lines_vec), &map), 6440);
     }
 }
