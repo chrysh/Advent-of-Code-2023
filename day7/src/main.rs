@@ -36,20 +36,6 @@ const CARDS_IN_SUIT: usize = 13;
 trait Cardgame {
     fn find_rank(&self, cards: &str) -> Rank;
     fn order() -> &'static [char];
-    fn cmp_cards(a: &&str, b: &&str) -> std::cmp::Ordering;
-    fn compare_card(a: char, b: char) -> std::cmp::Ordering;
-}
-
-struct Part1;
-struct Part2;
-
-impl Cardgame for Part1 {
-    fn order() -> &'static [char] {
-        &[
-            '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A',
-        ]
-    }
-
     fn cmp_cards(a: &&str, b: &&str) -> std::cmp::Ordering {
         let a_chars = (*a).chars();
         let b_chars = (*b).chars();
@@ -61,6 +47,19 @@ impl Cardgame for Part1 {
                 other => Some(other),
             })
             .unwrap_or(std::cmp::Ordering::Equal)
+    }
+
+    fn compare_card(a: char, b: char) -> std::cmp::Ordering;
+}
+
+struct Part1;
+struct Part2;
+
+impl Cardgame for Part1 {
+    fn order() -> &'static [char] {
+        &[
+            '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A',
+        ]
     }
 
     fn compare_card(a: char, b: char) -> std::cmp::Ordering {
@@ -92,18 +91,6 @@ impl Cardgame for Part2 {
         a_value.cmp(&b_value)
     }
 
-    fn cmp_cards(a: &&str, b: &&str) -> std::cmp::Ordering {
-        let a_chars = (*a).chars();
-        let b_chars = (*b).chars();
-
-        a_chars
-            .zip(b_chars)
-            .find_map(|(a, b)| match Self::compare_card(a, b) {
-                std::cmp::Ordering::Equal => None,
-                other => Some(other),
-            })
-            .unwrap_or(std::cmp::Ordering::Equal)
-    }
     fn find_rank(&self, cards: &str) -> Rank {
         let mut card_count;
         let mut ids;
