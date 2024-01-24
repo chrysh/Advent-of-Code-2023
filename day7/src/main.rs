@@ -36,20 +36,6 @@ const CARDS_IN_SUIT: usize = 13;
 trait Cardgame {
     fn find_rank(&self, cards: &str) -> Rank;
     fn order() -> &'static [char];
-    fn cmp_cards(a: &&str, b: &&str) -> std::cmp::Ordering;
-    fn compare_card(a: char, b: char) -> std::cmp::Ordering;
-}
-
-struct Part1;
-struct Part2;
-
-impl Cardgame for Part1 {
-    fn order() -> &'static [char] {
-        &[
-            '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A',
-        ]
-    }
-
     fn cmp_cards(a: &&str, b: &&str) -> std::cmp::Ordering {
         let a_chars = (*a).chars();
         let b_chars = (*b).chars();
@@ -61,6 +47,19 @@ impl Cardgame for Part1 {
                 other => Some(other),
             })
             .unwrap_or(std::cmp::Ordering::Equal)
+    }
+
+    fn compare_card(a: char, b: char) -> std::cmp::Ordering;
+}
+
+struct Part1;
+struct Part2;
+
+impl Cardgame for Part1 {
+    fn order() -> &'static [char] {
+        &[
+            '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A',
+        ]
     }
 
     fn compare_card(a: char, b: char) -> std::cmp::Ordering {
@@ -92,18 +91,6 @@ impl Cardgame for Part2 {
         a_value.cmp(&b_value)
     }
 
-    fn cmp_cards(a: &&str, b: &&str) -> std::cmp::Ordering {
-        let a_chars = (*a).chars();
-        let b_chars = (*b).chars();
-
-        a_chars
-            .zip(b_chars)
-            .find_map(|(a, b)| match Self::compare_card(a, b) {
-                std::cmp::Ordering::Equal => None,
-                other => Some(other),
-            })
-            .unwrap_or(std::cmp::Ordering::Equal)
-    }
     fn find_rank(&self, cards: &str) -> Rank {
         let mut card_count;
         let mut ids;
@@ -120,9 +107,9 @@ impl Cardgame for Part2 {
             let mut max = 0;
             let mut idx = None;
             for i in ids.iter().rev() {
-                if card_count[*i] > max &&  *i != joker_id {
-                        max = card_count[*i];
-                        idx = Some(*i);
+                if card_count[*i] > max && *i != joker_id {
+                    max = card_count[*i];
+                    idx = Some(*i);
                 }
             }
             if let Some(index) = idx {
@@ -130,10 +117,10 @@ impl Cardgame for Part2 {
                 card_count[joker_id] = 0;
                 ids.remove(joker_id);
             } else {
-                card_count[CARDS_IN_SUIT-1] += card_count[ids[joker_id]];
+                card_count[CARDS_IN_SUIT - 1] += card_count[ids[joker_id]];
                 card_count[ids[joker_id]] = 0;
                 ids.remove(joker_id);
-                ids.push(CARDS_IN_SUIT-1);
+                ids.push(CARDS_IN_SUIT - 1);
             }
         }
 
@@ -236,9 +223,7 @@ where
 type LineVec = Vec<String>;
 type LineMap = HashMap<String, u32>;
 
-fn read_file_into_lines(
-    filename: &str,
-) -> Result<(LineVec, LineMap), Box<dyn std::error::Error>> {
+fn read_file_into_lines(filename: &str) -> Result<(LineVec, LineMap), Box<dyn std::error::Error>> {
     let mut lines_vec: LineVec = Vec::new();
     let mut map: LineMap = HashMap::new();
 
@@ -303,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    fn test_example_part2 () {
+    fn test_example_part2() {
         let lines_vec: LineVec;
         let map: LineMap;
 
@@ -313,12 +298,12 @@ mod tests {
 
     #[test]
     fn test_compare_types_part2_joker() {
-        test_find_rank!(Part2 , "JJJJJ", Rank::Five);
-        test_find_rank!(Part2 , "JJJTA", Rank::Four);
-        test_find_rank!(Part2 , "JJJ98", Rank::Four);
-        test_find_rank!(Part2 , "TJJ98", Rank::Three);
-        test_find_rank!(Part2 , "2J332", Rank::FullHouse);
-        test_find_rank!(Part2 , "A23J4", Rank::OnePair);
+        test_find_rank!(Part2, "JJJJJ", Rank::Five);
+        test_find_rank!(Part2, "JJJTA", Rank::Four);
+        test_find_rank!(Part2, "JJJ98", Rank::Four);
+        test_find_rank!(Part2, "TJJ98", Rank::Three);
+        test_find_rank!(Part2, "2J332", Rank::FullHouse);
+        test_find_rank!(Part2, "A23J4", Rank::OnePair);
     }
 
     #[test]
